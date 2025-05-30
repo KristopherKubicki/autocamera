@@ -1,0 +1,64 @@
+# Autocamera
+
+`webcam.py` exposes a DSLR or other camera as a virtual webcam device and
+provides a small Flask server to show the current frame. It relies on gphoto2,
+ffmpeg, v4l2loopback, OpenCV, and Flask.
+
+## Requirements
+
+- Python 3
+- gphoto2
+- ffmpeg
+- v4l2loopback
+- OpenCV (`cv2`)
+- Flask
+
+## Usage
+
+```bash
+python3 webcam.py [--port PORT] [--start|--stop|--install|--uninstall]
+                  [--vendor VENDOR_ID] [--product PRODUCT_ID]
+```
+
+Running the script without arguments is the same as `--start`.
+Default port: **9007**.
+
+### Start the service
+
+```bash
+python3 webcam.py --start
+```
+
+### Install as a service
+
+```bash
+python3 webcam.py --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
+```
+
+If vendor and product IDs are not provided, the script attempts to detect them
+with `lsusb`.
+
+### Stop the service
+
+```bash
+python3 webcam.py --stop
+```
+
+### Uninstall
+
+```bash
+python3 webcam.py --uninstall
+```
+
+## Web Interface
+
+After starting, visit `http://localhost:9007/` for a small status page.
+The endpoint `/image` returns the latest frame as a JPEG.
+
+## Logging
+
+Logs are written to `/var/log/webcam.log`.
+
+## License
+
+This project is licensed under the MIT License.
