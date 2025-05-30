@@ -123,6 +123,7 @@ def frame_reader():
             logging.error(f"Unexpected error in frame reader: {e}")
             break
 
+    cap.release()
     cleanup_camera()
 
 @app.route('/')
