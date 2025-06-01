@@ -151,7 +151,7 @@ def index():
             var img = document.getElementById('liveImage');
             img.src = '/image?' + new Date().getTime(); // Add timestamp to avoid caching
         }
-        setInterval(refreshImage, 100); // Refresh every 5 seconds
+        setInterval(refreshImage, 100); // Refresh every 100 ms
     </script>
     '''
     return render_template_string(template, info=info)
