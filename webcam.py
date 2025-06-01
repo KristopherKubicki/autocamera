@@ -158,15 +158,14 @@ def index():
 
 
 @app.route('/image')
-def image2():
+def image():
     """Serve the current frame as an image."""
-    if True:
-        global frame_buffer, frame_buffer_time
-        if frame_buffer is not None and frame_buffer_time > time.time() - 5:  # five-second timeout
-            ret, buffer = cv2.imencode('.jpg', frame_buffer)
-            if ret:
-                return Response(buffer.tobytes(), mimetype='image/jpeg')
-        abort(404)
+    global frame_buffer, frame_buffer_time
+    if frame_buffer is not None and frame_buffer_time > time.time() - 5:  # five-second timeout
+        ret, buffer = cv2.imencode('.jpg', frame_buffer)
+        if ret:
+            return Response(buffer.tobytes(), mimetype='image/jpeg')
+    abort(404)
 
 
 def monitor_ffmpeg_output():
