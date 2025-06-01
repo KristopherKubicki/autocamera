@@ -18,6 +18,7 @@ ffmpeg, v4l2loopback, OpenCV, and Flask.
 ```bash
 python3 webcam.py [--port PORT] [--start|--stop|--install|--uninstall]
                   [--vendor VENDOR_ID] [--product PRODUCT_ID]
+                  [--log-file PATH]
 ```
 
 Running the script without arguments is the same as `--start`.
@@ -57,7 +58,9 @@ The endpoint `/image` returns the latest frame as a JPEG.
 
 ## Logging
 
-Logs are written to `/var/log/webcam.log`.
+By default logs are written to `./webcam.log`. You can change the location with
+the `--log-file` command-line option or the `WEBCAM_LOG_PATH` environment
+variable.
 
 ## License
 
