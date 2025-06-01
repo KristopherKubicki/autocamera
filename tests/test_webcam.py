@@ -36,8 +36,6 @@ sys.modules['flask'] = flask_stub
 spec = importlib.util.spec_from_file_location('webcam', 'webcam.py')
 webcam = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(webcam)
-
-from unittest import mock
 import subprocess
 
 def test_auto_detect_camera_ids_found():
