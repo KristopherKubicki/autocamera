@@ -18,8 +18,9 @@ ffmpeg_process = None
 frame_buffer = None
 frame_buffer_time = None
 
-logging.basicConfig(filename='/var/log/webcam.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
-logging.info('Webcam script started')
+# Path to the log file. This will be configured in ``main`` based on
+# command-line arguments or environment variables.
+LOG_PATH = None
 
 def setup_camera():
     """Set up camera module and other dependencies."""
@@ -129,10 +130,11 @@ def frame_reader():
 @app.route('/')
 def index():
     """Provide useful information at the root endpoint."""
+    global LOG_PATH
     info = {
         'Status': 'Running',
         'Image Endpoint': '/image',
-        'Logs': '/var/log/webcam.log'
+        'Logs': LOG_PATH or 'unknown'
     }
     template = '''
     <h1>Webcam Service</h1>
@@ -300,8 +302,16 @@ def main():
     parser.add_argument('--uninstall', action='store_true', help='Uninstall the webcam service')
     parser.add_argument('--vendor', type=str, help='USB Vendor ID of the camera')
     parser.add_argument('--product', type=str, help='USB Product ID of the camera')
+    parser.add_argument('--log-file', type=str, help='Path to log file')
 
     args = parser.parse_args()
+
+    global LOG_PATH
+    LOG_PATH = args.log_file or os.environ.get('WEBCAM_LOG_PATH') or './webcam.log'
+    logging.basicConfig(filename=LOG_PATH,
+                        level=logging.INFO,
+                        format='%(asctime)s:%(levelname)s:%(message)s')
+    logging.info('Webcam script started')
 
     # Determine vendor and product IDs
     vendor_id = args.vendor
