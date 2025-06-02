@@ -173,28 +173,30 @@ def monitor_ffmpeg_output():
     global ffmpeg_process
     while True:
         ffmpeg_output = ffmpeg_process.stderr.readline().decode('utf-8')
-        logging.info(f"FFmpeg output: {ffmpeg_output}")
         if not ffmpeg_output:
             break
-        logging.error(f"FFmpeg output: {ffmpeg_output}")
         if "Invalid data found" in ffmpeg_output or "Could not find the requested device" in ffmpeg_output:
+            logging.error(f"FFmpeg output: {ffmpeg_output.strip()}")
             logging.error("FFmpeg encountered a critical error. Shutting down.")
             cleanup_camera()
             break
+        else:
+            logging.info(f"FFmpeg output: {ffmpeg_output.strip()}")
 
 def monitor_gphoto_output():
     """Monitor Gphoto stderr for errors and shut down if necessary."""
     global gphoto2_process
     while True:
         gphoto_output = gphoto2_process.stderr.readline().decode('utf-8')
-        logging.info(f"Gphoto output: {gphoto_output}")
         if not gphoto_output:
             break
-        logging.error(f"Gphoto output: {gphoto_output}")
         if "Invalid data found" in gphoto_output or "Could not find the requested device" in gphoto_output:
+            logging.error(f"Gphoto output: {gphoto_output.strip()}")
             logging.error("Gphoto encountered a critical error. Shutting down.")
             cleanup_camera()
             break
+        else:
+            logging.info(f"Gphoto output: {gphoto_output.strip()}")
 
 def signal_handler(sig, frame):
     """Handle incoming signals (such as SIGINT for Ctrl+C)."""
