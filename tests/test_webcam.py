@@ -59,3 +59,17 @@ def test_kill_existing_processes():
             m_run.assert_any_call(['sudo', 'kill', '-9', '1234'])
             m_run.assert_any_call(['sudo', 'kill', '-9', '5678'])
 
+
+def test_index_uses_template():
+    with mock.patch.object(webcam, 'render_template_string', return_value="") as m_render:
+        assert webcam.index() == ""
+        assert m_render.called
+
+
+def test_image_no_frame_calls_abort():
+    webcam.frame_buffer = None
+    webcam.frame_buffer_time = 0
+    with mock.patch.object(webcam, 'abort') as m_abort:
+        webcam.image()
+        m_abort.assert_called_once_with(404)
+
