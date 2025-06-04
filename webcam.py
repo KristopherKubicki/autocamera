@@ -5,6 +5,7 @@ import subprocess
 import threading
 import time
 import logging
+from logging.handlers import RotatingFileHandler
 import cv2
 from flask import Flask, Response, abort, render_template_string
 import argparse
@@ -21,6 +22,16 @@ frame_buffer_time = None
 # Path to the log file. This will be configured in ``main`` based on
 # command-line arguments or environment variables.
 LOG_PATH = None
+
+
+def configure_logging(path):
+    """Configure rotating file logging."""
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    handler = RotatingFileHandler(path, maxBytes=1_000_000, backupCount=3)
+    formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 def setup_camera():
     """Set up camera module and other dependencies."""
@@ -308,9 +319,7 @@ def main():
 
     global LOG_PATH
     LOG_PATH = args.log_file or os.environ.get('WEBCAM_LOG_PATH') or './webcam.log'
-    logging.basicConfig(filename=LOG_PATH,
-                        level=logging.INFO,
-                        format='%(asctime)s:%(levelname)s:%(message)s')
+    configure_logging(LOG_PATH)
     logging.info('Webcam script started')
 
     # Determine vendor and product IDs

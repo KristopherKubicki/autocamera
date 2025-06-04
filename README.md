@@ -13,6 +13,12 @@ ffmpeg, v4l2loopback, OpenCV, and Flask.
 - OpenCV (`cv2`)
 - Flask
 
+Python dependencies can be installed with:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Usage
 
 ```bash
@@ -20,6 +26,9 @@ python3 webcam.py [--port PORT] [--start|--stop|--install|--uninstall]
                   [--vendor VENDOR_ID] [--product PRODUCT_ID]
                   [--log-file PATH]
 ```
+
+Most operations interact with system modules and may require root privileges.
+Use `sudo` when necessary.
 
 Running the script without arguments is the same as `--start`.
 Default port: **9007**.
@@ -33,11 +42,12 @@ python3 webcam.py --start
 ### Install as a service
 
 ```bash
-python3 webcam.py --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
+sudo python3 webcam.py --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
 ```
 
-If vendor and product IDs are not provided, the script attempts to detect them
-with `lsusb`.
+Installing the service writes udev rules and therefore requires root
+permissions. If vendor and product IDs are not provided, the script attempts to
+detect them with `lsusb`.
 
 ### Stop the service
 
@@ -48,7 +58,7 @@ python3 webcam.py --stop
 ### Uninstall
 
 ```bash
-python3 webcam.py --uninstall
+sudo python3 webcam.py --uninstall
 ```
 
 ## Web Interface
@@ -60,7 +70,7 @@ The endpoint `/image` returns the latest frame as a JPEG.
 
 By default logs are written to `./webcam.log`. You can change the location with
 the `--log-file` command-line option or the `WEBCAM_LOG_PATH` environment
-variable.
+variable. Logs rotate automatically when they reach about 1&nbsp;MB.
 
 ## License
 
