@@ -73,3 +73,22 @@ def test_image_no_frame_calls_abort():
         webcam.image()
         m_abort.assert_called_once_with(404)
 
+
+def test_setup_camera_uses_config_paths():
+    gphoto_mock = mock.Mock(stdout='out', stderr=mock.Mock())
+    ffmpeg_mock = mock.Mock(stderr=mock.Mock())
+    with mock.patch.object(webcam.subprocess, 'run'):
+        with mock.patch.object(webcam.subprocess, 'Popen') as m_popen, \
+             mock.patch.object(webcam.threading, 'Thread'):
+            m_popen.side_effect = [gphoto_mock, ffmpeg_mock]
+            webcam.GPHOTO2_PATH = '/opt/gphoto2'
+            webcam.FFMPEG_PATH = '/opt/ffmpeg'
+            webcam.setup_camera()
+            m_popen.assert_any_call([
+                '/opt/gphoto2', '--stdout', '--capture-movie'
+            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            m_popen.assert_any_call([
+                '/opt/ffmpeg', '-i', '-', '-pix_fmt', 'yuv420p', '-f', 'v4l2', '/dev/video0'
+            ], stdin=gphoto_mock.stdout, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+

@@ -19,9 +19,13 @@ ffmpeg_process = None
 frame_buffer = None
 frame_buffer_time = None
 
-# Path to the log file. This will be configured in ``main`` based on
-# command-line arguments or environment variables.
+# Paths configured at runtime via command-line arguments or environment
+# variables.  ``LOG_PATH`` is set in ``main`` as before.  ``GPHOTO2_PATH`` and
+# ``FFMPEG_PATH`` default to the traditional system locations but may be
+# overridden.
 LOG_PATH = None
+GPHOTO2_PATH = '/usr/bin/gphoto2'
+FFMPEG_PATH = '/usr/bin/ffmpeg'
 
 
 def configure_logging(path):
@@ -43,17 +47,17 @@ def setup_camera():
     subprocess.run(['sudo', 'modprobe', 'v4l2loopback', 'devices=1', 'exclusive_caps=1'], check=True)
 
     try:
-        # Start gphoto2 process
+        # Start gphoto2 process using configured path
         gphoto2_process = subprocess.Popen(
-            ['/usr/bin/gphoto2', '--stdout', '--capture-movie'],
+            [GPHOTO2_PATH, '--stdout', '--capture-movie'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
         logging.info('gphoto2 process started')
 
-        # Start ffmpeg process
+        # Start ffmpeg process using configured path
         ffmpeg_process = subprocess.Popen(
-            ['/usr/bin/ffmpeg', 
+            [FFMPEG_PATH,
                 #'-reconnect', '1', '-reconnect_at_eof', '1',
                 #'-reconnect_streamed', '1', '-reconnect_delay_max', '2',
                 #'-fflags', 'nobuffer',
@@ -314,11 +318,15 @@ def main():
     parser.add_argument('--vendor', type=str, help='USB Vendor ID of the camera')
     parser.add_argument('--product', type=str, help='USB Product ID of the camera')
     parser.add_argument('--log-file', type=str, help='Path to log file')
+    parser.add_argument('--gphoto2', type=str, help='Path to gphoto2 executable')
+    parser.add_argument('--ffmpeg', type=str, help='Path to ffmpeg executable')
 
     args = parser.parse_args()
 
-    global LOG_PATH
+    global LOG_PATH, GPHOTO2_PATH, FFMPEG_PATH
     LOG_PATH = args.log_file or os.environ.get('WEBCAM_LOG_PATH') or './webcam.log'
+    GPHOTO2_PATH = args.gphoto2 or os.environ.get('GPHOTO2_PATH') or GPHOTO2_PATH
+    FFMPEG_PATH = args.ffmpeg or os.environ.get('FFMPEG_PATH') or FFMPEG_PATH
     configure_logging(LOG_PATH)
     logging.info('Webcam script started')
 
