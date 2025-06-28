@@ -293,17 +293,29 @@ def uninstall_service():
     except Exception as e:
         logging.error(f"Error during uninstall: {e}")
 
-def auto_detect_camera_ids():
-    """Attempt to auto-detect camera vendor and product IDs using lsusb."""
+def auto_detect_camera_ids(vendor_pattern="Canon"):
+    """Attempt to auto-detect camera vendor and product IDs using lsusb.
+
+    Parameters
+    ----------
+    vendor_pattern : str, optional
+        Regular expression that matches the vendor name reported by ``lsusb``.
+        Defaults to ``"Canon"``.
+    """
     try:
         lsusb_output = subprocess.check_output(['lsusb']).decode('utf-8')
-        camera_devices = re.findall(r'Bus \d+ Device \d+: ID (\w+):(\w+) .*Canon.*', lsusb_output)
+        pattern = rf'Bus \d+ Device \d+: ID (\w+):(\w+) .*({vendor_pattern}).*'
+        camera_devices = re.findall(pattern, lsusb_output, re.IGNORECASE)
         if camera_devices:
-            vendor_id, product_id = camera_devices[0]
-            logging.info(f"Auto-detected vendor ID: {vendor_id}, product ID: {product_id}")
+            vendor_id, product_id, _ = camera_devices[0]
+            logging.info(
+                f"Auto-detected vendor ID: {vendor_id}, product ID: {product_id}"
+            )
             return vendor_id, product_id
         else:
-            logging.warning("No Canon camera found via lsusb.")
+            logging.warning(
+                f"No camera matching pattern '{vendor_pattern}' found via lsusb."
+            )
     except Exception as e:
         logging.error(f"Error auto-detecting camera IDs: {e}")
     return None, None
@@ -317,6 +329,8 @@ def main():
     parser.add_argument('--uninstall', action='store_true', help='Uninstall the webcam service')
     parser.add_argument('--vendor', type=str, help='USB Vendor ID of the camera')
     parser.add_argument('--product', type=str, help='USB Product ID of the camera')
+    parser.add_argument('--vendor-pattern', type=str, default='Canon',
+                        help='Regex pattern for vendor name when auto-detecting IDs')
     parser.add_argument('--log-file', type=str, help='Path to log file')
     parser.add_argument('--gphoto2', type=str, help='Path to gphoto2 executable')
     parser.add_argument('--ffmpeg', type=str, help='Path to ffmpeg executable')
@@ -333,10 +347,11 @@ def main():
     # Determine vendor and product IDs
     vendor_id = args.vendor
     product_id = args.product
+    vendor_pattern = args.vendor_pattern
 
     if args.install:
         if not vendor_id or not product_id:
-            vendor_id, product_id = auto_detect_camera_ids()
+            vendor_id, product_id = auto_detect_camera_ids(vendor_pattern)
             if not vendor_id or not product_id:
                 logging.error("Vendor ID and Product ID are required for installation.")
                 print(" >>> enable camera first")
