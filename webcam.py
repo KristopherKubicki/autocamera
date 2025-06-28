@@ -82,18 +82,18 @@ def cleanup_camera():
         if gphoto2_process:
             gphoto2_process.terminate()
     except Exception as e:
-        pass
+        logging.error(f'Error terminating gphoto2 process: {e}')
     try:
         if ffmpeg_process:
             ffmpeg_process.terminate()
     except Exception as e:
-        pass
+        logging.error(f'Error terminating ffmpeg process: {e}')
 
     try:
         subprocess.run(['sudo', 'pkill', '-9', 'gphoto2'], check=False)
         logging.info('gphoto2 cleaned up')
     except Exception as e:
-        pass
+        logging.error(f'Error running pkill on gphoto2: {e}')
     try:
         subprocess.run(['sudo', 'rmmod', 'v4l2loopback'], check=False)
         logging.info('v4l2loopback cleaned up')
