@@ -1,6 +1,7 @@
 import sys
 import types
 import importlib.util
+import time
 from unittest import mock
 
 # Create stub modules for cv2 and flask
@@ -73,6 +74,19 @@ def test_image_no_frame_calls_abort():
         webcam.image()
         m_abort.assert_called_once_with(404)
 
+def test_image_returns_response_with_jpeg_mimetype():
+    webcam.frame_buffer = object()
+    webcam.frame_buffer_time = time.time()
+    dummy_buffer = types.SimpleNamespace(tobytes=lambda: b'data')
+    with mock.patch.object(webcam.cv2, 'imencode', return_value=(True, dummy_buffer)) as m_encode, \
+         mock.patch.object(webcam, 'Response', return_value="resp") as m_resp, \
+         mock.patch.object(webcam, 'abort') as m_abort:
+        result = webcam.image()
+        assert result == "resp"
+        m_resp.assert_called_once()
+        args, kwargs = m_resp.call_args
+        assert kwargs.get('mimetype') == 'image/jpeg'
+        assert m_abort.call_count == 0
 
 def test_setup_camera_uses_config_paths():
     gphoto_mock = mock.Mock(stdout='out', stderr=mock.Mock())
