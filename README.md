@@ -26,6 +26,7 @@ python3 webcam.py [--port PORT] [--start|--stop|--install|--uninstall]
                   [--vendor VENDOR_ID] [--product PRODUCT_ID]
                   [--vendor-pattern REGEX]
                   [--log-file PATH]
+                  [--log-file PATH] [--gphoto2 PATH] [--ffmpeg PATH]
 ```
 
 Most operations interact with system modules and may require root privileges.
@@ -73,6 +74,12 @@ The endpoint `/image` returns the latest frame as a JPEG.
 By default logs are written to `./webcam.log`. You can change the location with
 the `--log-file` command-line option or the `WEBCAM_LOG_PATH` environment
 variable. Logs rotate automatically when they reach about 1&nbsp;MB.
+
+## Executable Paths
+
+If `gphoto2` or `ffmpeg` are not installed in standard locations, provide their
+paths with the `--gphoto2` and `--ffmpeg` options. The environment variables
+`GPHOTO2_PATH` and `FFMPEG_PATH` can also be used to override the defaults.
 
 ## License
 
