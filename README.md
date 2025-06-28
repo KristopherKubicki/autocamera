@@ -24,6 +24,7 @@ pip install -r requirements.txt
 ```bash
 python3 webcam.py [--port PORT] [--start|--stop|--install|--uninstall]
                   [--vendor VENDOR_ID] [--product PRODUCT_ID]
+                  [--vendor-pattern REGEX]
                   [--log-file PATH]
 ```
 
@@ -47,7 +48,8 @@ sudo python3 webcam.py --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
 
 Installing the service writes udev rules and therefore requires root
 permissions. If vendor and product IDs are not provided, the script attempts to
-detect them with `lsusb`.
+detect them with `lsusb`, matching the vendor name with the regular expression
+specified by `--vendor-pattern` (default: `Canon`).
 
 ### Stop the service
 

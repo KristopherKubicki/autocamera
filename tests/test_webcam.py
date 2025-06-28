@@ -51,6 +51,13 @@ def test_auto_detect_camera_ids_not_found():
         assert vendor is None
         assert product is None
 
+def test_auto_detect_camera_ids_different_vendor():
+    sample = "Bus 001 Device 005: ID 04b0:1234 Nikon Camera"
+    with mock.patch.object(webcam.subprocess, 'check_output', return_value=sample.encode()):
+        vendor, product = webcam.auto_detect_camera_ids(vendor_pattern='Nikon')
+        assert vendor == '04b0'
+        assert product == '1234'
+
 def test_kill_existing_processes():
     output = "proc 1234 listen\nproc2 5678 listen"
     with mock.patch.object(webcam.subprocess, 'check_output', return_value=output.encode()):
