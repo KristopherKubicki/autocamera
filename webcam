@@ -122,33 +122,43 @@ def frame_reader():
     """Read frames from the camera."""
     global frame_buffer, frame_buffer_time
     cap = cv2.VideoCapture("/dev/video0")
-    retries = 0
+    failures = 0
 
     while True:
         try:
+            if ffmpeg_process and ffmpeg_process.poll() is not None:
+                logging.error("FFmpeg terminated unexpectedly.")
+                break
+            if gphoto2_process and gphoto2_process.poll() is not None:
+                logging.error("gphoto2 terminated unexpectedly.")
+                break
+
             if not cap.isOpened():
                 logging.warning("Camera connection lost, retrying...")
-                retries += 1
-                if retries > 5:
-                    logging.error(
-                        "Failed to reconnect to the camera after multiple attempts."
-                    )
-                    break
-                time.sleep(2)
+                cap.release()
+                time.sleep(1)
                 cap = cv2.VideoCapture("/dev/video0")
+                failures += 1
+                if failures > 30:
+                    logging.error("Unable to reconnect to the camera.")
+                    break
                 continue
 
             ret, frame = cap.read()
             if ret:
                 frame_buffer = frame
                 frame_buffer_time = time.time()
-                retries = 0
+                failures = 0
                 time.sleep(0.1)  # Control frame reading rate
             else:
-                logging.warning("Failed to read frame, camera may be disconnected.")
-                retries += 1
-                if retries > 500:
-                    logging.error("Camera read failure, terminating frame reader.")
+                logging.warning(
+                    "Failed to read frame, camera may be disconnected."
+                )
+                failures += 1
+                if failures > 30:
+                    logging.error(
+                        "No frames received for 30 attempts, terminating frame reader."
+                    )
                     break
                 time.sleep(0.1)
         except Exception as e:

@@ -1,4 +1,5 @@
 import importlib.util
+import importlib.machinery
 import subprocess
 import sys
 import time
@@ -50,7 +51,9 @@ sys.modules["cv2"] = cv2_stub
 sys.modules["flask"] = flask_stub
 
 
-spec = importlib.util.spec_from_file_location("webcam", "webcam.py")
+spec = importlib.util.spec_from_file_location(
+    "webcam", "webcam", loader=importlib.machinery.SourceFileLoader("webcam", "webcam")
+)
 webcam = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(webcam)
 
@@ -290,7 +293,7 @@ def test_monitor_gphoto_output_no_cleanup_on_info():
 
 
 def test_main_install_invokes_install_service():
-    argv = ["webcam.py", "--install", "--vendor", "1", "--product", "2"]
+    argv = ["webcam", "--install", "--vendor", "1", "--product", "2"]
     with (
         mock.patch.object(sys, "argv", argv),
         mock.patch.object(webcam, "configure_logging"),
@@ -303,7 +306,7 @@ def test_main_install_invokes_install_service():
 
 
 def test_main_uninstall_invokes_uninstall_service():
-    argv = ["webcam.py", "--uninstall", "--port", "1234"]
+    argv = ["webcam", "--uninstall", "--port", "1234"]
     with (
         mock.patch.object(sys, "argv", argv),
         mock.patch.object(webcam, "configure_logging"),
@@ -316,7 +319,7 @@ def test_main_uninstall_invokes_uninstall_service():
 
 
 def test_main_start_invokes_start_service():
-    argv = ["webcam.py", "--start", "--port", "7777"]
+    argv = ["webcam", "--start", "--port", "7777"]
     with (
         mock.patch.object(sys, "argv", argv),
         mock.patch.object(webcam, "configure_logging"),
