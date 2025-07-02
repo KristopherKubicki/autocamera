@@ -13,10 +13,10 @@ ffmpeg, v4l2loopback, OpenCV, and Flask.
 - OpenCV (`cv2`)
 - Flask
 
-Python dependencies can be installed with:
+Install the package using ``pip``:
 
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
 ## Usage
