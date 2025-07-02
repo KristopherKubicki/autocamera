@@ -194,6 +194,7 @@ def test_status_reports_frame_availability():
     assert isinstance(result, dict)
     assert result["frame_available"]
 
+
 class FakeStderr:
     def __init__(self, lines):
         self.lines = [
@@ -285,4 +286,3 @@ def test_main_start_invokes_start_service():
         webcam.main()
         m_start.assert_called_once_with(7777)
         m_kill.assert_called_once_with(7777)
-
