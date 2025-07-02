@@ -1,17 +1,18 @@
 #!/usr/bin/python3
 
+import argparse
+import logging
 import os
+import re
+import signal
 import subprocess
+import sys
 import threading
 import time
-import logging
 from logging.handlers import RotatingFileHandler
+
 import cv2
 from flask import Flask, Response, abort, render_template_string
-import argparse
-import signal
-import sys
-import re
 
 app = Flask(__name__)
 gphoto2_process = None
@@ -24,8 +25,8 @@ frame_buffer_time = None
 # ``FFMPEG_PATH`` default to the traditional system locations but may be
 # overridden.
 LOG_PATH = None
-GPHOTO2_PATH = '/usr/bin/gphoto2'
-FFMPEG_PATH = '/usr/bin/ffmpeg'
+GPHOTO2_PATH = "/usr/bin/gphoto2"
+FFMPEG_PATH = "/usr/bin/ffmpeg"
 
 
 def configure_logging(path):
@@ -33,50 +34,61 @@ def configure_logging(path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     handler = RotatingFileHandler(path, maxBytes=1_000_000, backupCount=3)
-    formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+    formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
 
 def setup_camera():
     """Set up camera module and other dependencies."""
     global gphoto2_process, ffmpeg_process
 
     # Clean up any existing camera processes
-    subprocess.run(['sudo', 'pkill', '-9', 'gphoto2'], check=False)
-    subprocess.run(['sudo', 'rmmod', 'v4l2loopback'], check=False)
-    subprocess.run(['sudo', 'modprobe', 'v4l2loopback', 'devices=1', 'exclusive_caps=1'], check=True)
+    subprocess.run(["sudo", "pkill", "-9", "gphoto2"], check=False)
+    subprocess.run(["sudo", "rmmod", "v4l2loopback"], check=False)
+    subprocess.run(
+        ["sudo", "modprobe", "v4l2loopback", "devices=1", "exclusive_caps=1"],
+        check=True,
+    )
 
     try:
         # Start gphoto2 process using configured path
         gphoto2_process = subprocess.Popen(
-            [GPHOTO2_PATH, '--stdout', '--capture-movie'],
+            [GPHOTO2_PATH, "--stdout", "--capture-movie"],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
         )
-        logging.info('gphoto2 process started')
+        logging.info("gphoto2 process started")
 
         # Start ffmpeg process using configured path
         ffmpeg_process = subprocess.Popen(
-            [FFMPEG_PATH,
+            [
+                FFMPEG_PATH,
                 #'-reconnect', '1', '-reconnect_at_eof', '1',
                 #'-reconnect_streamed', '1', '-reconnect_delay_max', '2',
                 #'-fflags', 'nobuffer',
-                '-i', '-', 
-                '-pix_fmt', 'yuv420p',
-                '-f', 'v4l2', '/dev/video0'],
+                "-i",
+                "-",
+                "-pix_fmt",
+                "yuv420p",
+                "-f",
+                "v4l2",
+                "/dev/video0",
+            ],
             stdin=gphoto2_process.stdout,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
         )
-        logging.info('ffmpeg process started')
+        logging.info("ffmpeg process started")
 
         # Start a thread to monitor FFmpeg for errors
         threading.Thread(target=monitor_ffmpeg_output, daemon=True).start()
         threading.Thread(target=monitor_gphoto_output, daemon=True).start()
 
     except Exception as e:
-        logging.error(f'Error in starting camera: {e}')
+        logging.error(f"Error in starting camera: {e}")
         cleanup_camera()
+
 
 def cleanup_camera():
     """Clean up camera processes and resources."""
@@ -86,28 +98,29 @@ def cleanup_camera():
         if gphoto2_process:
             gphoto2_process.terminate()
     except Exception as e:
-        logging.error(f'Error terminating gphoto2 process: {e}')
+        logging.error(f"Error terminating gphoto2 process: {e}")
     try:
         if ffmpeg_process:
             ffmpeg_process.terminate()
     except Exception as e:
-        logging.error(f'Error terminating ffmpeg process: {e}')
+        logging.error(f"Error terminating ffmpeg process: {e}")
 
     try:
-        subprocess.run(['sudo', 'pkill', '-9', 'gphoto2'], check=False)
-        logging.info('gphoto2 cleaned up')
+        subprocess.run(["sudo", "pkill", "-9", "gphoto2"], check=False)
+        logging.info("gphoto2 cleaned up")
     except Exception as e:
-        logging.error(f'Error running pkill on gphoto2: {e}')
+        logging.error(f"Error running pkill on gphoto2: {e}")
     try:
-        subprocess.run(['sudo', 'rmmod', 'v4l2loopback'], check=False)
-        logging.info('v4l2loopback cleaned up')
+        subprocess.run(["sudo", "rmmod", "v4l2loopback"], check=False)
+        logging.info("v4l2loopback cleaned up")
     except Exception as e:
-        logging.error(f'Error cleaning up camera: {e}')
+        logging.error(f"Error cleaning up camera: {e}")
+
 
 def frame_reader():
     """Read frames from the camera."""
     global frame_buffer, frame_buffer_time
-    cap = cv2.VideoCapture('/dev/video0')
+    cap = cv2.VideoCapture("/dev/video0")
     retries = 0
 
     while True:
@@ -116,10 +129,12 @@ def frame_reader():
                 logging.warning("Camera connection lost, retrying...")
                 retries += 1
                 if retries > 5:
-                    logging.error("Failed to reconnect to the camera after multiple attempts.")
+                    logging.error(
+                        "Failed to reconnect to the camera after multiple attempts."
+                    )
                     break
                 time.sleep(2)
-                cap = cv2.VideoCapture('/dev/video0')
+                cap = cv2.VideoCapture("/dev/video0")
                 continue
 
             ret, frame = cap.read()
@@ -142,16 +157,17 @@ def frame_reader():
     cap.release()
     cleanup_camera()
 
-@app.route('/')
+
+@app.route("/")
 def index():
     """Provide useful information at the root endpoint."""
     global LOG_PATH
     info = {
-        'Status': 'Running',
-        'Image Endpoint': '/image',
-        'Logs': LOG_PATH or 'unknown'
+        "Status": "Running",
+        "Image Endpoint": "/image",
+        "Logs": LOG_PATH or "unknown",
     }
-    template = '''
+    template = """
     <h1>Webcam Service</h1>
     <ul>
         {% for key, value in info.items() %}
@@ -170,18 +186,20 @@ def index():
         }
         setInterval(refreshImage, 100); // Refresh every 100 ms
     </script>
-    '''
+    """
     return render_template_string(template, info=info)
 
 
-@app.route('/image')
+@app.route("/image")
 def image():
     """Serve the current frame as an image."""
     global frame_buffer, frame_buffer_time
-    if frame_buffer is not None and frame_buffer_time > time.time() - 5:  # five-second timeout
-        ret, buffer = cv2.imencode('.jpg', frame_buffer)
+    if (
+        frame_buffer is not None and frame_buffer_time > time.time() - 5
+    ):  # five-second timeout
+        ret, buffer = cv2.imencode(".jpg", frame_buffer)
         if ret:
-            return Response(buffer.tobytes(), mimetype='image/jpeg')
+            return Response(buffer.tobytes(), mimetype="image/jpeg")
     abort(404)
 
 
@@ -189,10 +207,13 @@ def monitor_ffmpeg_output():
     """Monitor FFmpeg stderr for errors and shut down if necessary."""
     global ffmpeg_process
     while True:
-        ffmpeg_output = ffmpeg_process.stderr.readline().decode('utf-8')
+        ffmpeg_output = ffmpeg_process.stderr.readline().decode("utf-8")
         if not ffmpeg_output:
             break
-        if "Invalid data found" in ffmpeg_output or "Could not find the requested device" in ffmpeg_output:
+        if (
+            "Invalid data found" in ffmpeg_output
+            or "Could not find the requested device" in ffmpeg_output
+        ):
             logging.error(f"FFmpeg output: {ffmpeg_output.strip()}")
             logging.error("FFmpeg encountered a critical error. Shutting down.")
             cleanup_camera()
@@ -200,14 +221,18 @@ def monitor_ffmpeg_output():
         else:
             logging.info(f"FFmpeg output: {ffmpeg_output.strip()}")
 
+
 def monitor_gphoto_output():
     """Monitor Gphoto stderr for errors and shut down if necessary."""
     global gphoto2_process
     while True:
-        gphoto_output = gphoto2_process.stderr.readline().decode('utf-8')
+        gphoto_output = gphoto2_process.stderr.readline().decode("utf-8")
         if not gphoto_output:
             break
-        if "Invalid data found" in gphoto_output or "Could not find the requested device" in gphoto_output:
+        if (
+            "Invalid data found" in gphoto_output
+            or "Could not find the requested device" in gphoto_output
+        ):
             logging.error(f"Gphoto output: {gphoto_output.strip()}")
             logging.error("Gphoto encountered a critical error. Shutting down.")
             cleanup_camera()
@@ -215,11 +240,13 @@ def monitor_gphoto_output():
         else:
             logging.info(f"Gphoto output: {gphoto_output.strip()}")
 
+
 def signal_handler(sig, frame):
     """Handle incoming signals (such as SIGINT for Ctrl+C)."""
     logging.info("Received signal to stop. Cleaning up...")
     cleanup_camera()
     sys.exit(0)
+
 
 def start_webcam_service(port):
     """Start the webcam service."""
@@ -230,68 +257,80 @@ def start_webcam_service(port):
         kill_existing_processes(port)
 
         threading.Thread(target=frame_reader, daemon=True).start()
-        app.run(host='0.0.0.0', port=port)
+        app.run(host="0.0.0.0", port=port)
     except OSError as e:
-        logging.error(f'Error starting webcam service: {e}')
+        logging.error(f"Error starting webcam service: {e}")
+
 
 def kill_existing_processes(port):
     """Kill any process listening on the specified port."""
     try:
-        result = subprocess.check_output(f"lsof -i :{port} | grep LISTEN", shell=True).decode('utf-8').strip()
+        result = (
+            subprocess.check_output(f"lsof -i :{port} | grep LISTEN", shell=True)
+            .decode("utf-8")
+            .strip()
+        )
         if result:
-            lines = result.split('\n')
+            lines = result.split("\n")
             for line in lines:
                 pid = line.split()[1]
-                subprocess.run(['sudo', 'kill', '-9', pid])
+                subprocess.run(["sudo", "kill", "-9", pid])
                 logging.info(f"Killed process {pid} on port {port}")
     except subprocess.CalledProcessError:
         logging.info(f"No process found on port {port}")
 
+
 def install_service(script_path, vendor_id, product_id):
-    """Install the webcam service to autostart when the camera is connected."""
+    """Install the webcam service and report progress on stdout."""
     logging.info("Installing webcam service...")
 
     udev_rule = (
         f'SUBSYSTEM=="usb", ATTR{{idVendor}}=="{vendor_id}", ATTR{{idProduct}}=="{product_id}", ACTION=="add", RUN+="{script_path} --start"\n'
         f'SUBSYSTEM=="usb", ATTR{{idVendor}}=="{vendor_id}", ATTR{{idProduct}}=="{product_id}", ACTION=="remove", RUN+="{script_path} --stop"'
     )
-    udev_file = '/etc/udev/rules.d/99-webcam.rules'
+    udev_file = "/etc/udev/rules.d/99-webcam.rules"
 
     try:
         # Write the udev rule
-        with open(udev_file, 'w') as f:
-            f.write(udev_rule + '\n')
+        with open(udev_file, "w") as f:
+            f.write(udev_rule + "\n")
         logging.info(f"Udev rule written to {udev_file}")
+        print(f"Install complete: {udev_file}")
 
         # Reload udev rules
-        subprocess.run(['sudo', 'udevadm', 'control', '--reload'])
-        subprocess.run(['sudo', 'udevadm', 'trigger'])
+        subprocess.run(["sudo", "udevadm", "control", "--reload"])
+        subprocess.run(["sudo", "udevadm", "trigger"])
         logging.info("Udev rules reloaded")
+        print("Udev rules reloaded")
 
     except Exception as e:
         logging.error(f"Error installing udev rule: {e}")
 
+
 def uninstall_service():
-    """Uninstall the webcam service."""
+    """Remove the service and report progress on stdout."""
     logging.info("Uninstalling webcam service...")
     cleanup_camera()
 
-    udev_file = '/etc/udev/rules.d/99-webcam.rules'
+    udev_file = "/etc/udev/rules.d/99-webcam.rules"
 
     try:
         # Remove udev rule
         if os.path.exists(udev_file):
             os.remove(udev_file)
             logging.info(f"Removed udev rule {udev_file}")
+            print(f"Uninstall complete: {udev_file} removed")
 
             # Reload udev rules
-            subprocess.run(['sudo', 'udevadm', 'control', '--reload'])
-            subprocess.run(['sudo', 'udevadm', 'trigger'])
+            subprocess.run(["sudo", "udevadm", "control", "--reload"])
+            subprocess.run(["sudo", "udevadm", "trigger"])
             logging.info("Udev rules reloaded")
+            print("Udev rules reloaded")
         else:
             logging.warning("Udev rule not found; nothing to uninstall.")
     except Exception as e:
         logging.error(f"Error during uninstall: {e}")
+
 
 def auto_detect_camera_ids(vendor_pattern="Canon"):
     """Attempt to auto-detect camera vendor and product IDs using lsusb.
@@ -303,8 +342,8 @@ def auto_detect_camera_ids(vendor_pattern="Canon"):
         Defaults to ``"Canon"``.
     """
     try:
-        lsusb_output = subprocess.check_output(['lsusb']).decode('utf-8')
-        pattern = rf'Bus \d+ Device \d+: ID (\w+):(\w+) .*({vendor_pattern}).*'
+        lsusb_output = subprocess.check_output(["lsusb"]).decode("utf-8")
+        pattern = rf"Bus \d+ Device \d+: ID (\w+):(\w+) .*({vendor_pattern}).*"
         camera_devices = re.findall(pattern, lsusb_output, re.IGNORECASE)
         if camera_devices:
             vendor_id, product_id, _ = camera_devices[0]
@@ -320,29 +359,40 @@ def auto_detect_camera_ids(vendor_pattern="Canon"):
         logging.error(f"Error auto-detecting camera IDs: {e}")
     return None, None
 
+
 def main():
     parser = argparse.ArgumentParser(description="Webcam service")
-    parser.add_argument('--port', type=int, default=9007, help='Port to run the webcam service')
-    parser.add_argument('--install', action='store_true', help='Install the webcam service')
-    parser.add_argument('--start', action='store_true', help='Start the webcam service')
-    parser.add_argument('--stop', action='store_true', help='Stop the webcam service')
-    parser.add_argument('--uninstall', action='store_true', help='Uninstall the webcam service')
-    parser.add_argument('--vendor', type=str, help='USB Vendor ID of the camera')
-    parser.add_argument('--product', type=str, help='USB Product ID of the camera')
-    parser.add_argument('--vendor-pattern', type=str, default='Canon',
-                        help='Regex pattern for vendor name when auto-detecting IDs')
-    parser.add_argument('--log-file', type=str, help='Path to log file')
-    parser.add_argument('--gphoto2', type=str, help='Path to gphoto2 executable')
-    parser.add_argument('--ffmpeg', type=str, help='Path to ffmpeg executable')
+    parser.add_argument(
+        "--port", type=int, default=9007, help="Port to run the webcam service"
+    )
+    parser.add_argument(
+        "--install", action="store_true", help="Install the webcam service"
+    )
+    parser.add_argument("--start", action="store_true", help="Start the webcam service")
+    parser.add_argument("--stop", action="store_true", help="Stop the webcam service")
+    parser.add_argument(
+        "--uninstall", action="store_true", help="Uninstall the webcam service"
+    )
+    parser.add_argument("--vendor", type=str, help="USB Vendor ID of the camera")
+    parser.add_argument("--product", type=str, help="USB Product ID of the camera")
+    parser.add_argument(
+        "--vendor-pattern",
+        type=str,
+        default="Canon",
+        help="Regex pattern for vendor name when auto-detecting IDs",
+    )
+    parser.add_argument("--log-file", type=str, help="Path to log file")
+    parser.add_argument("--gphoto2", type=str, help="Path to gphoto2 executable")
+    parser.add_argument("--ffmpeg", type=str, help="Path to ffmpeg executable")
 
     args = parser.parse_args()
 
     global LOG_PATH, GPHOTO2_PATH, FFMPEG_PATH
-    LOG_PATH = args.log_file or os.environ.get('WEBCAM_LOG_PATH') or './webcam.log'
-    GPHOTO2_PATH = args.gphoto2 or os.environ.get('GPHOTO2_PATH') or GPHOTO2_PATH
-    FFMPEG_PATH = args.ffmpeg or os.environ.get('FFMPEG_PATH') or FFMPEG_PATH
+    LOG_PATH = args.log_file or os.environ.get("WEBCAM_LOG_PATH") or "./webcam.log"
+    GPHOTO2_PATH = args.gphoto2 or os.environ.get("GPHOTO2_PATH") or GPHOTO2_PATH
+    FFMPEG_PATH = args.ffmpeg or os.environ.get("FFMPEG_PATH") or FFMPEG_PATH
     configure_logging(LOG_PATH)
-    logging.info('Webcam script started')
+    logging.info("Webcam script started")
 
     # Determine vendor and product IDs
     vendor_id = args.vendor
@@ -372,6 +422,7 @@ def main():
         kill_existing_processes(args.port)
         cleanup_camera()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     main()
