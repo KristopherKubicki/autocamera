@@ -30,15 +30,12 @@ pip install -r requirements.txt
 
 ## Usage
 
-System packages may require your distribution's package manager, for
-example on Debian/Ubuntu:
-
+System packages may require your distribution's package manager. For
+Debian/Ubuntu run:
 
 ```bash
 sudo apt install gphoto2 ffmpeg v4l2loopback-dkms
 ```
-
-## Usage
 
 Run the script without arguments to start streaming:
 
