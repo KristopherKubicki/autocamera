@@ -293,7 +293,7 @@ def kill_existing_processes(port):
 
 
 def install_service(script_path, vendor_id, product_id):
-    """Install the webcam service to autostart when the camera is connected."""
+    """Install the webcam service and report progress on stdout."""
     logging.info("Installing webcam service...")
 
     udev_rule = (
@@ -307,18 +307,20 @@ def install_service(script_path, vendor_id, product_id):
         with open(udev_file, "w") as f:
             f.write(udev_rule + "\n")
         logging.info(f"Udev rule written to {udev_file}")
+        print(f"Install complete: {udev_file}")
 
         # Reload udev rules
         subprocess.run(["sudo", "udevadm", "control", "--reload"])
         subprocess.run(["sudo", "udevadm", "trigger"])
         logging.info("Udev rules reloaded")
+        print("Udev rules reloaded")
 
     except Exception as e:
         logging.error(f"Error installing udev rule: {e}")
 
 
 def uninstall_service():
-    """Uninstall the webcam service."""
+    """Remove the service and report progress on stdout."""
     logging.info("Uninstalling webcam service...")
     cleanup_camera()
 
@@ -329,11 +331,13 @@ def uninstall_service():
         if os.path.exists(udev_file):
             os.remove(udev_file)
             logging.info(f"Removed udev rule {udev_file}")
+            print(f"Uninstall complete: {udev_file} removed")
 
             # Reload udev rules
             subprocess.run(["sudo", "udevadm", "control", "--reload"])
             subprocess.run(["sudo", "udevadm", "trigger"])
             logging.info("Udev rules reloaded")
+            print("Udev rules reloaded")
         else:
             logging.warning("Udev rule not found; nothing to uninstall.")
     except Exception as e:

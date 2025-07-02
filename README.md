@@ -51,6 +51,15 @@ Installing the service writes udev rules and therefore requires root
 permissions. If vendor and product IDs are not provided, the script attempts to
 detect them with `lsusb`, matching the vendor name with the regular expression
 specified by `--vendor-pattern` (default: `Canon`).
+On success the script prints the path of the new rule and confirms that
+`udevadm` reloaded. You can verify the rule with:
+
+```bash
+cat /etc/udev/rules.d/99-webcam.rules
+```
+
+If the file contains the rule, reconnecting the camera should automatically
+start the service.
 
 ### Stop the service
 
@@ -63,6 +72,10 @@ python3 webcam.py --stop
 ```bash
 sudo python3 webcam.py --uninstall
 ```
+
+When uninstallation succeeds the script reports the rule removal. Check that
+`/etc/udev/rules.d/99-webcam.rules` no longer exists and reconnecting the camera
+does not start the service.
 
 ## Web Interface
 
