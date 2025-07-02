@@ -17,9 +17,16 @@ provides a status page and endpoints to fetch the latest image.
 - Python 3
 - gphoto2
 - ffmpeg
-- v4l2loopback
+- v4l2loopback-dkms
 - OpenCV (`cv2`)
 - Flask
+
+
+On Debian/Ubuntu install required packages with:
+
+```bash
+sudo apt install gphoto2 ffmpeg v4l2loopback-dkms
+```
 
 Install Python dependencies with:
 
@@ -27,32 +34,21 @@ Install Python dependencies with:
 pip install -r requirements.txt
 ```
 
-
-## Usage
-
-System packages may require your distribution's package manager, for
-example on Debian/Ubuntu:
-
-
-```bash
-sudo apt install gphoto2 ffmpeg v4l2loopback-dkms
-```
-
 ## Usage
 
 Run the script without arguments to start streaming:
 
 ```bash
-python3 webcam.py
+./webcam
 ```
 
 The script accepts several options:
 
 ```bash
-python3 webcam.py [--port PORT] [--start|--stop|--install|--uninstall]
-                  [--vendor VENDOR_ID] [--product PRODUCT_ID]
-                  [--vendor-pattern REGEX]
-                  [--log-file PATH] [--gphoto2 PATH] [--ffmpeg PATH]
+./webcam [--port PORT] [--start|--stop|--install|--uninstall]
+         [--vendor VENDOR_ID] [--product PRODUCT_ID]
+         [--vendor-pattern REGEX]
+         [--log-file PATH] [--gphoto2 PATH] [--ffmpeg PATH]
 ```
 
 Most operations require interaction with system modules and may need
@@ -64,7 +60,7 @@ Install the webcam service so that it starts automatically when the
 camera is plugged in:
 
 ```bash
-sudo python3 webcam.py --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
+sudo ./webcam --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
 ```
 
 To stop the service or remove the udev rule use `--stop` and
