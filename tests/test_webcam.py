@@ -195,8 +195,6 @@ def test_status_reports_frame_availability():
     result = webcam.status()
     assert isinstance(result, dict)
     assert result["frame_available"]
-
-
 def test_install_service_writes_udev_rule():
     m_open = mock.mock_open()
     with mock.patch("builtins.open", m_open) as m_file, mock.patch.object(
@@ -233,6 +231,7 @@ def test_uninstall_service_removes_udev_rule():
         m_run.assert_any_call(["sudo", "udevadm", "control", "--reload"])
         m_run.assert_any_call(["sudo", "udevadm", "trigger"])
 
+        
 class FakeStderr:
     def __init__(self, lines):
         self.lines = [
@@ -324,5 +323,4 @@ def test_main_start_invokes_start_service():
         webcam.main()
         m_start.assert_called_once_with(7777)
         m_kill.assert_called_once_with(7777)
-
 
