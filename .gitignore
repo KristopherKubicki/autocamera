@@ -19,3 +19,4 @@ dist/
 .eggs/
 htmlcov/
 .DS_Store
+webcam.log*
