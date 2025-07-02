@@ -21,9 +21,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
-        python -m pip install pytest pytest-cov pre-commit
+        python -m pip install pytest pytest-cov pre-commit mypy bandit
     - name: Run pre-commit
       run: pre-commit run --show-diff-on-failure --color=always --all-files
+    - name: Run mypy
+      run: mypy webcam.py tests
+    - name: Run bandit
+      run: bandit -r .
     - name: Run tests with coverage
       shell: bash
       run: |
