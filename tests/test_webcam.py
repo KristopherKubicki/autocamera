@@ -5,6 +5,8 @@ import time
 import types
 from unittest import mock
 
+# mypy: ignore-errors
+
 # Create stub modules for cv2 and flask
 cv2_stub = types.SimpleNamespace(
     VideoCapture=lambda *a, **k: None, imencode=lambda *a, **k: (True, b"")
@@ -193,8 +195,43 @@ def test_status_reports_frame_availability():
     result = webcam.status()
     assert isinstance(result, dict)
     assert result["frame_available"]
+def test_install_service_writes_udev_rule():
+    m_open = mock.mock_open()
+    with mock.patch("builtins.open", m_open) as m_file, mock.patch.object(
+        webcam.subprocess,
+        "run",
+    ) as m_run, mock.patch("builtins.print"):
+        webcam.install_service("/my/script", "11aa", "22bb")
+        m_file.assert_called_once_with("/etc/udev/rules.d/99-webcam.rules", "w")
+        handle = m_open()
+        expected = (
+            'SUBSYSTEM=="usb", ATTR{idVendor}=="11aa", ATTR{idProduct}=="22bb", '
+            'ACTION=="add", RUN+="/my/script --start"\n'
+            'SUBSYSTEM=="usb", ATTR{idVendor}=="11aa", ATTR{idProduct}=="22bb", '
+            'ACTION=="remove", RUN+="/my/script --stop"'
+        )
+        handle.write.assert_called_once_with(expected + "\n")
+        m_run.assert_any_call(["sudo", "udevadm", "control", "--reload"])
+        m_run.assert_any_call(["sudo", "udevadm", "trigger"])
 
 
+def test_uninstall_service_removes_udev_rule():
+    with mock.patch.object(
+        webcam.os.path, "exists", return_value=True
+    ) as m_exists, mock.patch.object(
+        webcam.os, "remove"
+    ) as m_remove, mock.patch.object(
+        webcam.subprocess, "run"
+    ) as m_run, mock.patch(
+        "builtins.print"
+    ):
+        webcam.uninstall_service()
+        m_exists.assert_called_once_with("/etc/udev/rules.d/99-webcam.rules")
+        m_remove.assert_called_once_with("/etc/udev/rules.d/99-webcam.rules")
+        m_run.assert_any_call(["sudo", "udevadm", "control", "--reload"])
+        m_run.assert_any_call(["sudo", "udevadm", "trigger"])
+
+        
 class FakeStderr:
     def __init__(self, lines):
         self.lines = [
@@ -286,3 +323,4 @@ def test_main_start_invokes_start_service():
         webcam.main()
         m_start.assert_called_once_with(7777)
         m_kill.assert_called_once_with(7777)
+
