@@ -1,8 +1,16 @@
 # Autocamera
 
-`webcam.py` exposes a DSLR or other camera as a virtual webcam device and
-provides a small Flask server to show the current frame. It relies on gphoto2,
-ffmpeg, v4l2loopback, OpenCV, and Flask.
+Autocamera exposes a DSLR or other supported camera as a virtual webcam.
+It relies on **gphoto2** and **ffmpeg** to capture video frames and on
+`v4l2loopback` to create the virtual device. A small Flask application
+provides a status page and endpoints to fetch the latest image.
+
+## Features
+
+- Stream frames from gphoto2 into a virtual webcam device
+- Simple web interface for current frame and status information
+- Install/uninstall helper for udev rules
+- Lightweight logging with automatic rotation
 
 ## Requirements
 
@@ -13,87 +21,67 @@ ffmpeg, v4l2loopback, OpenCV, and Flask.
 - OpenCV (`cv2`)
 - Flask
 
-Python dependencies can be installed with:
+Install Python dependencies with:
 
 ```bash
 pip install -r requirements.txt
 ```
 
+System packages may require your distribution's package manager, for
+example on Debian/Ubuntu:
+
+```bash
+sudo apt install gphoto2 ffmpeg v4l2loopback-dkms
+```
+
 ## Usage
+
+Run the script without arguments to start streaming:
+
+```bash
+python3 webcam.py
+```
+
+The script accepts several options:
 
 ```bash
 python3 webcam.py [--port PORT] [--start|--stop|--install|--uninstall]
                   [--vendor VENDOR_ID] [--product PRODUCT_ID]
                   [--vendor-pattern REGEX]
-                  [--log-file PATH]
                   [--log-file PATH] [--gphoto2 PATH] [--ffmpeg PATH]
 ```
 
-Most operations interact with system modules and may require root privileges.
-Use `sudo` when necessary.
+Most operations require interaction with system modules and may need
+root privileges. Use `sudo` when necessary.
 
-Running the script without arguments is the same as `--start`.
-Default port: **9007**.
+### Service management
 
-### Start the service
-
-```bash
-python3 webcam.py --start
-```
-
-### Install as a service
+Install the webcam service so that it starts automatically when the
+camera is plugged in:
 
 ```bash
 sudo python3 webcam.py --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
 ```
 
-Installing the service writes udev rules and therefore requires root
-permissions. If vendor and product IDs are not provided, the script attempts to
-detect them with `lsusb`, matching the vendor name with the regular expression
-specified by `--vendor-pattern` (default: `Canon`).
-On success the script prints the path of the new rule and confirms that
-`udevadm` reloaded. You can verify the rule with:
+To stop the service or remove the udev rule use `--stop` and
+`--uninstall` respectively.
+
+### Web interface
+
+Visit `http://localhost:9007/` after starting for a simple status page.
+The endpoint `/image` returns the latest frame as a JPEG and `/status`
+returns JSON with basic information.
+
+## Development
+
+Run the unit tests with:
 
 ```bash
-cat /etc/udev/rules.d/99-webcam.rules
+pytest
 ```
 
-If the file contains the rule, reconnecting the camera should automatically
-start the service.
-
-### Stop the service
-
-```bash
-python3 webcam.py --stop
-```
-
-### Uninstall
-
-```bash
-sudo python3 webcam.py --uninstall
-```
-
-When uninstallation succeeds the script reports the rule removal. Check that
-`/etc/udev/rules.d/99-webcam.rules` no longer exists and reconnecting the camera
-does not start the service.
-
-## Web Interface
-
-After starting, visit `http://localhost:9007/` for a small status page.
-The endpoint `/image` returns the latest frame as a JPEG.
-The endpoint `/status` returns a JSON object with uptime and frame info.
-
-## Logging
-
-By default logs are written to `./webcam.log`. You can change the location with
-the `--log-file` command-line option or the `WEBCAM_LOG_PATH` environment
-variable. Logs rotate automatically when they reach about 1&nbsp;MB.
-
-## Executable Paths
-
-If `gphoto2` or `ffmpeg` are not installed in standard locations, provide their
-paths with the `--gphoto2` and `--ffmpeg` options. The environment variables
-`GPHOTO2_PATH` and `FFMPEG_PATH` can also be used to override the defaults.
+The tests stub out system dependencies so they can run without a camera
+attached.
 
 ## License
 
