@@ -47,6 +47,7 @@ flask_stub = types.SimpleNamespace(
 sys.modules["cv2"] = cv2_stub
 sys.modules["flask"] = flask_stub
 
+
 spec = importlib.util.spec_from_file_location("webcam", "webcam.py")
 webcam = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(webcam)
@@ -112,7 +113,9 @@ def test_image_returns_response_with_jpeg_mimetype():
     dummy_buffer = types.SimpleNamespace(tobytes=lambda: b"data")
     with mock.patch.object(
         webcam.cv2, "imencode", return_value=(True, dummy_buffer)
+
     ) as _, mock.patch.object(
+
         webcam, "Response", return_value="resp"
     ) as m_resp, mock.patch.object(
         webcam, "abort"
@@ -158,6 +161,7 @@ def test_setup_camera_uses_config_paths():
             )
 
 
+
 def test_install_service_prints_messages():
     with mock.patch("builtins.open", mock.mock_open()), mock.patch.object(
         webcam.subprocess, "run"
@@ -180,3 +184,12 @@ def test_uninstall_service_prints_messages():
             "Uninstall complete: /etc/udev/rules.d/99-webcam.rules removed"
         )
         m_print.assert_any_call("Udev rules reloaded")
+
+def test_status_reports_frame_availability():
+    webcam.start_time = time.time() - 5
+    webcam.frame_buffer = object()
+    webcam.frame_buffer_time = time.time()
+    result = webcam.status()
+    assert isinstance(result, dict)
+    assert result["frame_available"]
+

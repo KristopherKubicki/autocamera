@@ -19,6 +19,7 @@ gphoto2_process = None
 ffmpeg_process = None
 frame_buffer = None
 frame_buffer_time = None
+start_time = time.time()
 
 # Paths configured at runtime via command-line arguments or environment
 # variables.  ``LOG_PATH`` is set in ``main`` as before.  ``GPHOTO2_PATH`` and
@@ -201,6 +202,17 @@ def image():
         if ret:
             return Response(buffer.tobytes(), mimetype="image/jpeg")
     abort(404)
+
+
+@app.route("/status")
+def status():
+    """Return basic status information."""
+    age = (time.time() - frame_buffer_time) if frame_buffer_time else None
+    return {
+        "uptime": time.time() - start_time,
+        "frame_age": age,
+        "frame_available": frame_buffer is not None,
+    }
 
 
 def monitor_ffmpeg_output():
