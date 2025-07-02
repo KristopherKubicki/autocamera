@@ -111,15 +111,13 @@ def test_image_returns_response_with_jpeg_mimetype():
     webcam.frame_buffer = object()
     webcam.frame_buffer_time = time.time()
     dummy_buffer = types.SimpleNamespace(tobytes=lambda: b"data")
-    with mock.patch.object(
-        webcam.cv2, "imencode", return_value=(True, dummy_buffer)
-
-    ) as _, mock.patch.object(
-
-        webcam, "Response", return_value="resp"
-    ) as m_resp, mock.patch.object(
-        webcam, "abort"
-    ) as m_abort:
+    with (
+        mock.patch.object(
+            webcam.cv2, "imencode", return_value=(True, dummy_buffer)
+        ) as _,
+        mock.patch.object(webcam, "Response", return_value="resp") as m_resp,
+        mock.patch.object(webcam, "abort") as m_abort,
+    ):
         result = webcam.image()
         assert result == "resp"
         m_resp.assert_called_once()
@@ -132,9 +130,10 @@ def test_setup_camera_uses_config_paths():
     gphoto_mock = mock.Mock(stdout="out", stderr=mock.Mock())
     ffmpeg_mock = mock.Mock(stderr=mock.Mock())
     with mock.patch.object(webcam.subprocess, "run"):
-        with mock.patch.object(
-            webcam.subprocess, "Popen"
-        ) as m_popen, mock.patch.object(webcam.threading, "Thread"):
+        with (
+            mock.patch.object(webcam.subprocess, "Popen") as m_popen,
+            mock.patch.object(webcam.threading, "Thread"),
+        ):
             m_popen.side_effect = [gphoto_mock, ffmpeg_mock]
             webcam.GPHOTO2_PATH = "/opt/gphoto2"
             webcam.FFMPEG_PATH = "/opt/ffmpeg"
@@ -161,29 +160,30 @@ def test_setup_camera_uses_config_paths():
             )
 
 
-
 def test_install_service_prints_messages():
-    with mock.patch("builtins.open", mock.mock_open()), mock.patch.object(
-        webcam.subprocess, "run"
-    ), mock.patch("builtins.print") as m_print:
+    with (
+        mock.patch("builtins.open", mock.mock_open()),
+        mock.patch.object(webcam.subprocess, "run"),
+        mock.patch("builtins.print") as m_print,
+    ):
         webcam.install_service("/script", "1", "2")
         m_print.assert_any_call("Install complete: /etc/udev/rules.d/99-webcam.rules")
         m_print.assert_any_call("Udev rules reloaded")
 
 
 def test_uninstall_service_prints_messages():
-    with mock.patch.object(
-        webcam.os.path, "exists", return_value=True
-    ), mock.patch.object(webcam.os, "remove"), mock.patch.object(
-        webcam.subprocess, "run"
-    ), mock.patch(
-        "builtins.print"
-    ) as m_print:
+    with (
+        mock.patch.object(webcam.os.path, "exists", return_value=True),
+        mock.patch.object(webcam.os, "remove"),
+        mock.patch.object(webcam.subprocess, "run"),
+        mock.patch("builtins.print") as m_print,
+    ):
         webcam.uninstall_service()
         m_print.assert_any_call(
             "Uninstall complete: /etc/udev/rules.d/99-webcam.rules removed"
         )
         m_print.assert_any_call("Udev rules reloaded")
+
 
 def test_status_reports_frame_availability():
     webcam.start_time = time.time() - 5
@@ -193,3 +193,95 @@ def test_status_reports_frame_availability():
     assert isinstance(result, dict)
     assert result["frame_available"]
 
+
+class FakeStderr:
+    def __init__(self, lines):
+        self.lines = [
+            line if isinstance(line, bytes) else line.encode() for line in lines
+        ]
+
+    def readline(self):
+        return self.lines.pop(0) if self.lines else b""
+
+
+def test_monitor_ffmpeg_output_triggers_cleanup_on_error():
+    stderr = FakeStderr(["Invalid data found", ""])
+    process = types.SimpleNamespace(stderr=stderr)
+    with (
+        mock.patch.object(webcam, "ffmpeg_process", process),
+        mock.patch.object(webcam, "cleanup_camera") as m_clean,
+    ):
+        webcam.monitor_ffmpeg_output()
+        m_clean.assert_called_once()
+
+
+def test_monitor_ffmpeg_output_no_cleanup_on_info():
+    stderr = FakeStderr(["all good", ""])
+    process = types.SimpleNamespace(stderr=stderr)
+    with (
+        mock.patch.object(webcam, "ffmpeg_process", process),
+        mock.patch.object(webcam, "cleanup_camera") as m_clean,
+    ):
+        webcam.monitor_ffmpeg_output()
+        m_clean.assert_not_called()
+
+
+def test_monitor_gphoto_output_triggers_cleanup_on_error():
+    stderr = FakeStderr(["Could not find the requested device", ""])
+    process = types.SimpleNamespace(stderr=stderr)
+    with (
+        mock.patch.object(webcam, "gphoto2_process", process),
+        mock.patch.object(webcam, "cleanup_camera") as m_clean,
+    ):
+        webcam.monitor_gphoto_output()
+        m_clean.assert_called_once()
+
+
+def test_monitor_gphoto_output_no_cleanup_on_info():
+    stderr = FakeStderr(["nothing bad", ""])
+    process = types.SimpleNamespace(stderr=stderr)
+    with (
+        mock.patch.object(webcam, "gphoto2_process", process),
+        mock.patch.object(webcam, "cleanup_camera") as m_clean,
+    ):
+        webcam.monitor_gphoto_output()
+        m_clean.assert_not_called()
+
+
+def test_main_install_invokes_install_service():
+    argv = ["webcam.py", "--install", "--vendor", "1", "--product", "2"]
+    with (
+        mock.patch.object(sys, "argv", argv),
+        mock.patch.object(webcam, "configure_logging"),
+        mock.patch.object(webcam, "install_service") as m_install,
+        mock.patch.object(webcam, "kill_existing_processes") as m_kill,
+    ):
+        webcam.main()
+        m_install.assert_called_once()
+        m_kill.assert_not_called()
+
+
+def test_main_uninstall_invokes_uninstall_service():
+    argv = ["webcam.py", "--uninstall", "--port", "1234"]
+    with (
+        mock.patch.object(sys, "argv", argv),
+        mock.patch.object(webcam, "configure_logging"),
+        mock.patch.object(webcam, "uninstall_service") as m_uninstall,
+        mock.patch.object(webcam, "kill_existing_processes") as m_kill,
+    ):
+        webcam.main()
+        m_uninstall.assert_called_once()
+        m_kill.assert_called_once_with(1234)
+
+
+def test_main_start_invokes_start_service():
+    argv = ["webcam.py", "--start", "--port", "7777"]
+    with (
+        mock.patch.object(sys, "argv", argv),
+        mock.patch.object(webcam, "configure_logging"),
+        mock.patch.object(webcam, "start_webcam_service") as m_start,
+        mock.patch.object(webcam, "kill_existing_processes") as m_kill,
+    ):
+        webcam.main()
+        m_start.assert_called_once_with(7777)
+        m_kill.assert_called_once_with(7777)
