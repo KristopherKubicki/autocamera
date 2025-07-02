@@ -43,13 +43,13 @@ sudo apt install gphoto2 ffmpeg v4l2loopback-dkms
 Run the script without arguments to start streaming:
 
 ```bash
-python3 webcam.py
+python3 webcam
 ```
 
 The script accepts several options:
 
 ```bash
-python3 webcam.py [--port PORT] [--start|--stop|--install|--uninstall]
+python3 webcam [--port PORT] [--start|--stop|--install|--uninstall]
                   [--vendor VENDOR_ID] [--product PRODUCT_ID]
                   [--vendor-pattern REGEX]
                   [--log-file PATH] [--gphoto2 PATH] [--ffmpeg PATH]
@@ -64,7 +64,7 @@ Install the webcam service so that it starts automatically when the
 camera is plugged in:
 
 ```bash
-sudo python3 webcam.py --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
+sudo python3 webcam --install --vendor <VENDOR_ID> --product <PRODUCT_ID>
 ```
 
 To stop the service or remove the udev rule use `--stop` and
