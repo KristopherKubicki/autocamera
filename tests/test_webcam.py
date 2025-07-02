@@ -1,4 +1,3 @@
-import importlib.util
 import subprocess
 import sys
 import time
@@ -50,9 +49,7 @@ sys.modules["cv2"] = cv2_stub
 sys.modules["flask"] = flask_stub
 
 
-spec = importlib.util.spec_from_file_location("webcam", "webcam.py")
-webcam = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(webcam)
+import autocamera.webcam as webcam  # noqa: E402
 
 
 def test_auto_detect_camera_ids_found():
