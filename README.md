@@ -19,6 +19,12 @@ Python dependencies can be installed with:
 pip install -r requirements.txt
 ```
 
+After installing the dependencies, set up Git hooks with:
+
+```bash
+pre-commit install
+```
+
 ## Usage
 
 ```bash
