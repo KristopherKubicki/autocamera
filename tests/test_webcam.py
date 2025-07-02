@@ -1,3 +1,4 @@
+import importlib.machinery
 import importlib.util
 import subprocess
 import sys
@@ -50,9 +51,10 @@ sys.modules["cv2"] = cv2_stub
 sys.modules["flask"] = flask_stub
 
 
-spec = importlib.util.spec_from_file_location("webcam", "webcam.py")
+loader = importlib.machinery.SourceFileLoader("webcam", "webcam")
+spec = importlib.util.spec_from_loader("webcam", loader)
 webcam = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(webcam)
+loader.exec_module(webcam)
 
 
 def test_auto_detect_camera_ids_found():
@@ -326,3 +328,46 @@ def test_main_start_invokes_start_service():
         webcam.main()
         m_start.assert_called_once_with(7777)
         m_kill.assert_called_once_with(7777)
+
+
+def test_signal_handler_exits_and_cleans_up():
+    import signal
+
+    import pytest
+
+    with (
+        mock.patch.object(webcam, "cleanup_camera") as m_clean,
+        pytest.raises(SystemExit),
+    ):
+        webcam.signal_handler(signal.SIGINT, None)
+    m_clean.assert_called_once()
+
+
+def test_frame_reader_updates_buffer_and_cleans():
+    class FakeCap:
+        def __init__(self):
+            self.calls = 0
+
+        def isOpened(self):
+            return True
+
+        def read(self):
+            self.calls += 1
+            if self.calls == 1:
+                return True, "img"
+            raise Exception("stop")
+
+        def release(self):
+            pass
+
+    fake_cap = FakeCap()
+    with (
+        mock.patch.object(webcam.cv2, "VideoCapture", return_value=fake_cap),
+        mock.patch.object(webcam, "cleanup_camera") as m_clean,
+        mock.patch.object(webcam.time, "sleep"),
+    ):
+        webcam.frame_buffer = None
+        webcam.frame_buffer_time = 0
+        webcam.frame_reader()
+        assert webcam.frame_buffer == "img"
+        m_clean.assert_called_once()

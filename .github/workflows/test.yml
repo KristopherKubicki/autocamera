@@ -27,7 +27,7 @@ jobs:
     - name: Run tests with coverage
       shell: bash
       run: |
-        pytest --cov=webcam --cov-report=xml
+        pytest --cov=webcam --cov=autocamera --cov-report=xml
     - name: Upload coverage
       uses: codecov/codecov-action@v4
       with:
