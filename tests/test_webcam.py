@@ -83,12 +83,13 @@ def test_auto_detect_camera_ids_different_vendor():
 
 
 def test_kill_existing_processes():
-    output = "proc 1234 listen\nproc2 5678 listen"
+    output = "proc 1234 LISTEN\nproc2 5678 LISTEN"
     with mock.patch.object(
         webcam.subprocess, "check_output", return_value=output.encode()
-    ):
+    ) as m_co:
         with mock.patch.object(webcam.subprocess, "run") as m_run:
             webcam.kill_existing_processes(8000)
+            m_co.assert_called_once_with(["lsof", "-i", ":8000"])
             m_run.assert_any_call(["sudo", "kill", "-9", "1234"])
             m_run.assert_any_call(["sudo", "kill", "-9", "5678"])
 
@@ -193,7 +194,6 @@ def test_status_reports_frame_availability():
     assert isinstance(result, dict)
     assert result["frame_available"]
 
-
 def test_install_service_writes_udev_rule():
     m_open = mock.mock_open()
     with mock.patch("builtins.open", m_open) as m_file, mock.patch.object(
@@ -229,3 +229,4 @@ def test_uninstall_service_removes_udev_rule():
         m_remove.assert_called_once_with("/etc/udev/rules.d/99-webcam.rules")
         m_run.assert_any_call(["sudo", "udevadm", "control", "--reload"])
         m_run.assert_any_call(["sudo", "udevadm", "trigger"])
+
