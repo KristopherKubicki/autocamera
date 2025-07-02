@@ -68,6 +68,7 @@ sudo python3 webcam.py --uninstall
 
 After starting, visit `http://localhost:9007/` for a small status page.
 The endpoint `/image` returns the latest frame as a JPEG.
+The endpoint `/status` returns a JSON object with uptime and frame info.
 
 ## Logging
 
