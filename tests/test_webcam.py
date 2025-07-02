@@ -81,12 +81,13 @@ def test_auto_detect_camera_ids_different_vendor():
 
 
 def test_kill_existing_processes():
-    output = "proc 1234 listen\nproc2 5678 listen"
+    output = "proc 1234 LISTEN\nproc2 5678 LISTEN"
     with mock.patch.object(
         webcam.subprocess, "check_output", return_value=output.encode()
-    ):
+    ) as m_co:
         with mock.patch.object(webcam.subprocess, "run") as m_run:
             webcam.kill_existing_processes(8000)
+            m_co.assert_called_once_with(["lsof", "-i", ":8000"])
             m_run.assert_any_call(["sudo", "kill", "-9", "1234"])
             m_run.assert_any_call(["sudo", "kill", "-9", "5678"])
 
@@ -113,9 +114,7 @@ def test_image_returns_response_with_jpeg_mimetype():
     dummy_buffer = types.SimpleNamespace(tobytes=lambda: b"data")
     with mock.patch.object(
         webcam.cv2, "imencode", return_value=(True, dummy_buffer)
-
     ) as _, mock.patch.object(
-
         webcam, "Response", return_value="resp"
     ) as m_resp, mock.patch.object(
         webcam, "abort"
@@ -161,7 +160,6 @@ def test_setup_camera_uses_config_paths():
             )
 
 
-
 def test_install_service_prints_messages():
     with mock.patch("builtins.open", mock.mock_open()), mock.patch.object(
         webcam.subprocess, "run"
@@ -185,6 +183,7 @@ def test_uninstall_service_prints_messages():
         )
         m_print.assert_any_call("Udev rules reloaded")
 
+
 def test_status_reports_frame_availability():
     webcam.start_time = time.time() - 5
     webcam.frame_buffer = object()
@@ -192,4 +191,3 @@ def test_status_reports_frame_availability():
     result = webcam.status()
     assert isinstance(result, dict)
     assert result["frame_available"]
-

@@ -277,14 +277,10 @@ def start_webcam_service(port):
 def kill_existing_processes(port):
     """Kill any process listening on the specified port."""
     try:
-        result = (
-            subprocess.check_output(f"lsof -i :{port} | grep LISTEN", shell=True)
-            .decode("utf-8")
-            .strip()
-        )
-        if result:
-            lines = result.split("\n")
-            for line in lines:
+        output = subprocess.check_output(["lsof", "-i", f":{port}"])
+        lines = output.decode("utf-8").strip().split("\n")
+        for line in lines:
+            if "LISTEN" in line:
                 pid = line.split()[1]
                 subprocess.run(["sudo", "kill", "-9", pid])
                 logging.info(f"Killed process {pid} on port {port}")
