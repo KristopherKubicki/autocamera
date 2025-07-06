@@ -76,14 +76,16 @@ returns JSON with basic information.
 
 ## Development
 
-Run the unit tests with:
+Run the unit tests with coverage enabled using `coverage.py`:
 
 ```bash
-pytest
+pip install coverage  # once
+coverage run -m pytest
+coverage report
 ```
 
-The tests stub out system dependencies so they can run without a camera
-attached.
+This displays a coverage summary in the terminal. The tests stub out
+system dependencies so they can run without a camera attached.
 
 ## License
 
