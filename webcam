@@ -31,10 +31,15 @@ FFMPEG_PATH = "/usr/bin/ffmpeg"
 
 
 def configure_logging(path):
-    """Configure rotating file logging."""
+    """Configure rotating file logging with a fallback."""
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    handler = RotatingFileHandler(path, maxBytes=1_000_000, backupCount=3)
+    try:
+        handler = RotatingFileHandler(path, maxBytes=1_000_000, backupCount=3)
+    except OSError as exc:  # e.g. permission denied
+        handler = logging.StreamHandler()
+        logger.error("Failed to open log file %s: %s", path, exc)
+        logger.error("Logging to stderr instead")
     formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
