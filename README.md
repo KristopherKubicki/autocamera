@@ -27,12 +27,12 @@ Install Python dependencies with:
 pip install -r requirements.txt
 ```
 
+Dependencies are version-pinned for reproducible installs.
 
 ## Usage
 
 System packages may require your distribution's package manager, for
 example on Debian/Ubuntu:
-
 
 ```bash
 sudo apt install gphoto2 ffmpeg v4l2loopback-dkms
