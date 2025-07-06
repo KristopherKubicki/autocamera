@@ -38,8 +38,6 @@ example on Debian/Ubuntu:
 sudo apt install gphoto2 ffmpeg v4l2loopback-dkms
 ```
 
-## Usage
-
 Run the script without arguments to start streaming:
 
 ```bash
