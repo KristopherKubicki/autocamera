@@ -123,22 +123,35 @@ def cleanup_camera():
         logging.error(f"Error cleaning up camera: {e}")
 
 
-def frame_reader():
+def shutdown_program():
+    """Terminate the process after cleaning up."""
+    cleanup_camera()
+    os._exit(0)
+
+
+def frame_reader(timeout_seconds=120):
     """Read frames from the camera."""
     global frame_buffer, frame_buffer_time
     cap = cv2.VideoCapture("/dev/video0")
     retries = 0
+    last_success = time.time()
 
     while True:
         try:
             if not cap.isOpened():
                 logging.warning("Camera connection lost, retrying...")
+                if time.time() - last_success > timeout_seconds:
+                    logging.error(
+                        "Camera unavailable for over %s seconds, shutting down.",
+                        timeout_seconds,
+                    )
+                    shutdown_program()
                 retries += 1
                 if retries > 5:
                     logging.error(
                         "Failed to reconnect to the camera after multiple attempts."
                     )
-                    break
+                    shutdown_program()
                 time.sleep(2)
                 cap = cv2.VideoCapture("/dev/video0")
                 continue
@@ -147,21 +160,28 @@ def frame_reader():
             if ret:
                 frame_buffer = frame
                 frame_buffer_time = time.time()
+                last_success = frame_buffer_time
                 retries = 0
                 time.sleep(0.1)  # Control frame reading rate
             else:
                 logging.warning("Failed to read frame, camera may be disconnected.")
+                if time.time() - last_success > timeout_seconds:
+                    logging.error(
+                        "No frames captured for over %s seconds, shutting down.",
+                        timeout_seconds,
+                    )
+                    shutdown_program()
                 retries += 1
                 if retries > 500:
                     logging.error("Camera read failure, terminating frame reader.")
-                    break
+                    shutdown_program()
                 time.sleep(0.1)
         except Exception as e:
             logging.error(f"Unexpected error in frame reader: {e}")
             break
 
     cap.release()
-    cleanup_camera()
+    shutdown_program()
 
 
 @app.route("/")

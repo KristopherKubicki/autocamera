@@ -6,6 +6,8 @@ import time
 import types
 from unittest import mock
 
+import pytest
+
 # mypy: ignore-errors
 
 # Create stub modules for cv2 and flask
@@ -328,3 +330,32 @@ def test_main_start_invokes_start_service():
         webcam.main()
         m_start.assert_called_once_with(7777)
         m_kill.assert_called_once_with(7777)
+
+
+def test_frame_reader_times_out_and_shuts_down():
+    class FakeCap:
+        def isOpened(self):
+            return False
+
+        def read(self):
+            return False, None
+
+        def release(self):
+            pass
+
+    fake_cap = FakeCap()
+
+    def advancing_time():
+        advancing_time.current += 1
+        return advancing_time.current
+
+    advancing_time.current = 0
+
+    with (
+        mock.patch.object(webcam.cv2, "VideoCapture", return_value=fake_cap),
+        mock.patch.object(webcam.time, "time", side_effect=advancing_time),
+        mock.patch.object(webcam.time, "sleep"),
+        mock.patch.object(webcam, "shutdown_program", side_effect=SystemExit),
+    ):
+        with pytest.raises(SystemExit):
+            webcam.frame_reader(timeout_seconds=1)
