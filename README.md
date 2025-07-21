@@ -38,10 +38,10 @@ example on Debian/Ubuntu:
 sudo apt install gphoto2 ffmpeg v4l2loopback-dkms
 ```
 
-Run the script without arguments to start streaming:
+Run the script as root without arguments to start streaming:
 
 ```bash
-python3 webcam
+sudo python3 webcam
 ```
 
 The script accepts several options:
@@ -53,8 +53,9 @@ python3 webcam [--port PORT] [--start|--stop|--install|--uninstall]
                   [--log-file PATH] [--gphoto2 PATH] [--ffmpeg PATH]
 ```
 
-Most operations require interaction with system modules and may need
-root privileges. Use `sudo` when necessary.
+The application interacts with system modules such as `v4l2loopback`.
+Run it with root privileges (e.g. using `sudo`) so that cleanup works
+without password prompts.
 
 ### Service management
 
