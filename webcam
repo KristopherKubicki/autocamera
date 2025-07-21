@@ -50,10 +50,10 @@ def setup_camera():
     global gphoto2_process, ffmpeg_process
 
     # Clean up any existing camera processes
-    subprocess.run(["sudo", "pkill", "-9", "gphoto2"], check=False)
-    subprocess.run(["sudo", "rmmod", "v4l2loopback"], check=False)
+    subprocess.run(["pkill", "-9", "gphoto2"], check=False)
+    subprocess.run(["rmmod", "v4l2loopback"], check=False)
     subprocess.run(
-        ["sudo", "modprobe", "v4l2loopback", "devices=1", "exclusive_caps=1"],
+        ["modprobe", "v4l2loopback", "devices=1", "exclusive_caps=1"],
         check=True,
     )
 
@@ -112,12 +112,12 @@ def cleanup_camera():
         logging.error(f"Error terminating ffmpeg process: {e}")
 
     try:
-        subprocess.run(["sudo", "pkill", "-9", "gphoto2"], check=False)
+        subprocess.run(["pkill", "-9", "gphoto2"], check=False)
         logging.info("gphoto2 cleaned up")
     except Exception as e:
         logging.error(f"Error running pkill on gphoto2: {e}")
     try:
-        subprocess.run(["sudo", "rmmod", "v4l2loopback"], check=False)
+        subprocess.run(["rmmod", "v4l2loopback"], check=False)
         logging.info("v4l2loopback cleaned up")
     except Exception as e:
         logging.error(f"Error cleaning up camera: {e}")
@@ -287,7 +287,7 @@ def kill_existing_processes(port):
         for line in lines:
             if "LISTEN" in line:
                 pid = line.split()[1]
-                subprocess.run(["sudo", "kill", "-9", pid])
+                subprocess.run(["kill", "-9", pid])
                 logging.info(f"Killed process {pid} on port {port}")
     except subprocess.CalledProcessError:
         logging.info(f"No process found on port {port}")
@@ -311,8 +311,8 @@ def install_service(script_path, vendor_id, product_id):
         print(f"Install complete: {udev_file}")
 
         # Reload udev rules
-        subprocess.run(["sudo", "udevadm", "control", "--reload"])
-        subprocess.run(["sudo", "udevadm", "trigger"])
+        subprocess.run(["udevadm", "control", "--reload"])
+        subprocess.run(["udevadm", "trigger"])
         logging.info("Udev rules reloaded")
         print("Udev rules reloaded")
 
@@ -335,8 +335,8 @@ def uninstall_service():
             print(f"Uninstall complete: {udev_file} removed")
 
             # Reload udev rules
-            subprocess.run(["sudo", "udevadm", "control", "--reload"])
-            subprocess.run(["sudo", "udevadm", "trigger"])
+            subprocess.run(["udevadm", "control", "--reload"])
+            subprocess.run(["udevadm", "trigger"])
             logging.info("Udev rules reloaded")
             print("Udev rules reloaded")
         else:
